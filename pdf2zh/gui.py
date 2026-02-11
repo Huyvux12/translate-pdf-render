@@ -50,6 +50,13 @@ from babeldoc import __version__ as babeldoc_version
 logger = logging.getLogger(__name__)
 
 BABELDOC_MODEL = OnnxModel.load_available()
+
+# Admin/Guest mode
+admin_password = os.environ.get("ADMIN_PASSWORD", "")
+admin_mode = bool(admin_password)
+
+# BabelDOC default
+use_babeldoc_default = bool(os.environ.get("USE_BABELDOC", ""))
 # The following variables associate strings with translators
 service_map: dict[str, BaseTranslator] = {
     "Google": GoogleTranslator,
@@ -89,6 +96,7 @@ lang_map = {
     "Russian": "ru",
     "Spanish": "es",
     "Italian": "it",
+    "Vietnamese": "vi",
 }
 
 # The following variable associate strings with page ranges
@@ -565,7 +573,7 @@ with gr.Blocks(
             for i in range(3):
                 envs.append(
                     gr.Textbox(
-                        visible=False,
+                        visible=False if admin_mode else False,
                         interactive=True,
                     )
                 )
@@ -592,7 +600,12 @@ with gr.Blocks(
                 interactive=True,
             )
 
-            with gr.Accordion("Open for More Experimental Options!", open=False):
+            # Advanced/Experimental options — hidden from guests in admin mode
+            with gr.Accordion(
+                "⚙️ Admin Settings" if admin_mode else "Open for More Experimental Options!",
+                open=False,
+                visible=not admin_mode,
+            ) as advanced_accordion:
                 gr.Markdown("#### Experimental")
                 threads = gr.Textbox(
                     label="number of threads", interactive=True, value="4"
@@ -612,9 +625,38 @@ with gr.Blocks(
                     label="Custom Prompt for llm", interactive=True, visible=False
                 )
                 use_babeldoc = gr.Checkbox(
-                    label="Use BabelDOC", interactive=True, value=False
+                    label="Use BabelDOC", interactive=True, value=use_babeldoc_default
                 )
                 envs.append(prompt)
+
+            # Admin login panel — only shown in admin mode
+            if admin_mode:
+                with gr.Accordion("🔐 Admin Panel", open=False):
+                    admin_pw_input = gr.Textbox(
+                        label="Admin Password",
+                        type="password",
+                        placeholder="Enter admin password to unlock settings",
+                    )
+                    admin_login_btn = gr.Button("🔓 Unlock Settings", variant="secondary")
+                    admin_status = gr.Markdown("")
+
+                    def admin_login(pw):
+                        if pw == admin_password:
+                            return (
+                                gr.update(visible=True, open=True),
+                                "✅ Admin settings unlocked!",
+                            )
+                        else:
+                            return (
+                                gr.update(visible=False),
+                                "❌ Wrong password",
+                            )
+
+                    admin_login_btn.click(
+                        admin_login,
+                        inputs=[admin_pw_input],
+                        outputs=[advanced_accordion, admin_status],
+                    )
 
             def on_select_service(service, evt: gr.EventData):
                 translator = service_map[service]
@@ -627,7 +669,10 @@ with gr.Blocks(
                         translator, env[0], env[1]
                     )
                     visible = True
-                    if hidden_gradio_details:
+                    # In admin mode, hide all env fields from guests
+                    if admin_mode:
+                        visible = False
+                    elif hidden_gradio_details:
                         if (
                             "MODEL" not in str(label).upper()
                             and value
@@ -642,7 +687,7 @@ with gr.Blocks(
                         label=label,
                         value=value,
                     )
-                _envs[-1] = gr.update(visible=translator.CustomPrompt)
+                _envs[-1] = gr.update(visible=translator.CustomPrompt and not admin_mode)
                 return _envs
 
             def on_select_filetype(file_type):

@@ -1,0 +1,28 @@
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies (OpenCV, etc.)
+RUN apt-get update && \
+     apt-get install --no-install-recommends -y libgl1 libglib2.0-0 libxext6 libsm6 libxrender1 && \
+     rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies (cached layer)
+COPY pyproject.toml .
+RUN uv pip install --system --no-cache -r pyproject.toml && babeldoc --version && babeldoc --warmup
+
+# Copy application code
+COPY . .
+
+# Install the package itself
+RUN uv pip install --system --no-cache . && \
+    uv pip install --system --no-cache -U "babeldoc<0.3.0" "pymupdf<1.25.3" "pdfminer-six==20250416" && \
+    babeldoc --version && babeldoc --warmup
+
+# Make entrypoint executable
+RUN chmod +x /app/entrypoint.sh
+
+# Render injects PORT env var (default 10000)
+CMD ["/app/entrypoint.sh"]

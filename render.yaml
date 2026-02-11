@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: pdfmathtranslate
+    runtime: docker
+    plan: standard
+    dockerfilePath: ./Dockerfile.render
+    envVars:
+      - key: AUTH_USERS
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: OPENAILIKED_BASE_URL
+        sync: false
+      - key: OPENAILIKED_API_KEY
+        sync: false
+      - key: OPENAILIKED_MODEL
+        sync: false
+      - key: ENABLED_SERVICES
+        value: "OpenAI-liked"
+      - key: HIDDEN_GRADIO_DETAILS
+        value: "true"
+      - key: USE_BABELDOC
+        value: "true"
+      - key: PYTHONUNBUFFERED
+        value: "1"
