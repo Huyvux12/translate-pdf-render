@@ -300,12 +300,13 @@ def translate_file(
     for i, env in enumerate(translator.envs.items()):
         _envs[env[0]] = envs[i]
     for k, v in _envs.items():
-        if str(k).upper().endswith("API_KEY") and str(v) == "***":
-            # Load Real API_KEYs from local configure file
-            real_keys: str = ConfigManager.get_env_by_translatername(
+        # In admin mode or when value is empty/masked, load from config/env
+        if not v or (str(k).upper().endswith("API_KEY") and str(v) == "***"):
+            real_value: str = ConfigManager.get_env_by_translatername(
                 translator, k, None
             )
-            _envs[k] = real_keys
+            if real_value:
+                _envs[k] = real_value
 
     print(f"Files before translation: {os.listdir(output)}")
 
