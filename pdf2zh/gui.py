@@ -574,7 +574,7 @@ with gr.Blocks(
             for i in range(3):
                 envs.append(
                     gr.Textbox(
-                        visible=False if admin_mode else False,
+                        visible=False,
                         interactive=True,
                     )
                 )
@@ -670,10 +670,7 @@ with gr.Blocks(
                         translator, env[0], env[1]
                     )
                     visible = True
-                    # In admin mode, hide all env fields from guests
-                    if admin_mode:
-                        visible = False
-                    elif hidden_gradio_details:
+                    if hidden_gradio_details:
                         if (
                             "MODEL" not in str(label).upper()
                             and value
@@ -688,7 +685,7 @@ with gr.Blocks(
                         label=label,
                         value=value,
                     )
-                _envs[-1] = gr.update(visible=translator.CustomPrompt and not admin_mode)
+                _envs[-1] = gr.update(visible=translator.CustomPrompt)
                 return _envs
 
             def on_select_filetype(file_type):
